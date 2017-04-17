@@ -1,4 +1,7 @@
-use t::TestYAML tests => 134;
+use FindBin;
+BEGIN { push @INC, $FindBin::Bin }
+
+use TestYAML tests => 134;
 
 ok( YAML::Syck->VERSION, "YAML::Syck has a version and is loaded" );
 

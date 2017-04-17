@@ -3,7 +3,10 @@ use warnings;
 
 use utf8;
 
-use t::TestYAML ();
+use FindBin;
+BEGIN { push @INC, $FindBin::Bin }
+
+use TestYAML ();
 use Test::More tests => 3;
 use YAML::Syck;
 

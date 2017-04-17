@@ -1,4 +1,4 @@
-package t::TestYAML;
+package TestYAML;
 
 BEGIN { $ENV{PERL_DL_NONLAZY} = 0 }
 

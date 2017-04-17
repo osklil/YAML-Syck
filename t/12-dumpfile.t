@@ -1,11 +1,13 @@
-use t::TestYAML;
+use FindBin;
+BEGIN { push @INC, $FindBin::Bin }
+
+use TestYAML;
 use Test::More;
-use FindBin '$RealBin';
 
-chdir $RealBin;
+chdir $FindBin::RealBin;
 
-unless ( -w $RealBin ) {
-    plan skip_all => "Can't write to $RealBin";
+unless ( -w $FindBin::RealBin ) {
+    plan skip_all => "Can't write to $FindBin::RealBin";
     exit;
 }
 

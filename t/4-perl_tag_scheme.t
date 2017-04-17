@@ -1,4 +1,7 @@
-use t::TestYAML tests => 18;
+use FindBin;
+BEGIN { push @INC, $FindBin::Bin }
+
+use TestYAML tests => 18;
 
 ok( YAML::Syck->VERSION );
 

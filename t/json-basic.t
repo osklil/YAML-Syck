@@ -1,5 +1,8 @@
 use strict;
-use t::TestYAML ();
+use FindBin;
+BEGIN { push @INC, $FindBin::Bin }
+
+use TestYAML ();
 use Data::Dumper;
 use Test::More;
 use JSON::Syck;

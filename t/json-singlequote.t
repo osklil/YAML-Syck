@@ -1,7 +1,10 @@
 use strict;
 use warnings;
 
-use t::TestYAML ();
+use FindBin;
+BEGIN { push @INC, $FindBin::Bin }
+
+use TestYAML ();
 use Test::More tests => 5;
 use JSON::Syck;
 

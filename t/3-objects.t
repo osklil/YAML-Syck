@@ -1,4 +1,7 @@
-use t::TestYAML tests => 51,
+use FindBin;
+BEGIN { push @INC, $FindBin::Bin }
+
+use TestYAML tests => 51,
   (
       ( $] < 5.008 )
     ? ( todo => [ 19 .. 20, 26 .. 29 ] )
