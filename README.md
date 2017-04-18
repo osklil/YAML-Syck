@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/toddr/YAML-Syck.png?branch=master)](https://travis-ci.org/toddr/YAML-Syck)
+
 NAME
     YAML::Syck - Fast, lightweight YAML loader and dumper
 
