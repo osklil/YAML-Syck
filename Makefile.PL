@@ -1,18 +1,19 @@
+use 5.006;
 use strict;
-use lib '.';
-use inc::Module::Install;
+use warnings;
+use ExtUtils::MakeMaker;
 
 my $bad;
-if (eval { require YAML; $YAML::VERSION < 0.60 }) {
+if ( eval { require YAML; $YAML::VERSION < 0.60 } ) {
     print "*** Pre-0.60 version of YAML.pm ($YAML::VERSION) detected.\n";
     $bad++;
 }
-if (eval { require YAML::Syck; $YAML::Syck::VERSION < 0.60 }) {
+if ( eval { require YAML::Syck; $YAML::Syck::VERSION < 0.60 } ) {
     print "*** Pre-0.60 version of YAML::Syck ($YAML::Syck::VERSION) detected.\n";
     $bad++;
 }
 
-if ($bad and !is_admin()) {
+if ($bad) {
     print << '_';
 
 *** WARNING ***
@@ -24,23 +25,50 @@ See the COMPATIBILITY file for more information.
 
 _
 
-    exit() unless prompt("Continue installing YAML::Syck?", 'y') =~ /^y/i;
+    {
+        local $| = 1;
+        local $/ = '';
+        print "Continue installing YAML::Syck ? (y/n) ";
+        my $ans = getc;
+        exit() unless $ans =~ /^y/i;
+    }
 }
 
-name            'YAML-Syck';
-license         'MIT';
-all_from        'lib/YAML/Syck.pm';
-cc_inc_paths    '.';
-cc_files        (glob("*.c"), (-e 'Syck.c' ? () : 'Syck.c'));
+# One liner stolen from inc/Module/Install/Compiler.pm
+my $c_files = join ' ', map { substr( $_, 0, -2 ) . $Config::Config{_o} } ( glob("*.c"), ( -e 'Syck.c' ? () : 'Syck.c' ) );
 
-# cc_optimize_flags '-g3';
+WriteMakefile(
+    NAME               => 'YAML::Syck',
+    AUTHOR             => q{Todd Rinaldo <toddr@cpan.org>},
+    VERSION_FROM       => 'lib/YAML/Syck.pm',
+    ABSTRACT_FROM      => 'lib/YAML/Syck.pm',
+    LICENSE            => 'MIT',
+    PL_FILES           => {},
+    MIN_PERL_VERSION   => '5.006',
+    CONFIGURE_REQUIRES => {
+        'ExtUtils::MakeMaker' => '0',
+    },
+    BUILD_REQUIRES => {
+        'Test::More' => '0',
+        defined $ENV{'AUTOMATED_TESTING'} ? ( 'Devel::Leak' => 0 ) : (),
 
-can_cc or die "This module requires a C compiler";
+    },
+    INC    => "-I.",
+    OBJECT => $c_files,
+    dist   => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    clean  => { FILES => 'Test-MockFile-*' },
+    $ExtUtils::MakeMaker::VERSION >= 6.46
+    ? (
+        'META_MERGE' => {
+            resources => {
+                'license'    => 'http://dev.perl.org/licenses/',
+                'homepage'   => 'http://github.com/toddr/YAML-Syck',
+                'bugtracker' => 'https://github.com/toddr/YAML-Syck/issues',
+                'repository' => 'http://github.com/toddr/YAML-Syck',
+            }
+        }
+      )
+    : (),
+);
 
-include_deps    'Test::More';
-build_requires  'Devel::Leak' if defined $ENV{'AUTOMATED_TESTING'};
-homepage        'http://search.cpan.org/dist/YAML-Syck';
-repository      'http://github.com/toddr/YAML-Syck';
-bugtracker      'https://rt.cpan.org/Public/Dist/Display.html?Name=YAML-Syck';
-tests           't/*.t t/*/*.t';
-WriteAll;
+#-cc_files
