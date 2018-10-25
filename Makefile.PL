@@ -25,13 +25,8 @@ See the COMPATIBILITY file for more information.
 
 _
 
-    {
-        local $| = 1;
-        local $/ = '';
-        print "Continue installing YAML::Syck ? (y/n) ";
-        my $ans = getc;
-        exit() unless $ans =~ /^y/i;
-    }
+    my $ans = prompt("Continue installing YAML::Syck?", "y");
+    exit() unless $ans =~ /^y/i;
 }
 
 # One liner stolen from inc/Module/Install/Compiler.pm
