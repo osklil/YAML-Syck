@@ -3,6 +3,14 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
+require "./inc/ExtUtils/HasCompiler.pm";
+
+my $can_xs = ExtUtils::HasCompiler::can_compile_loadable_object( quiet => 1 ) ? 1 : 0;
+if ( !$can_xs ) {
+    print "Sorry! YAML::Syck requires a compiler in order to be built.\n";
+    exit 1;
+}
+
 my $bad;
 if ( eval { require YAML; $YAML::VERSION < 0.60 } ) {
     print "*** Pre-0.60 version of YAML.pm ($YAML::VERSION) detected.\n";
@@ -25,7 +33,7 @@ See the COMPATIBILITY file for more information.
 
 _
 
-    my $ans = prompt("Continue installing YAML::Syck?", "y");
+    my $ans = prompt( "Continue installing YAML::Syck?", "y" );
     exit() unless $ans =~ /^y/i;
 }
 
