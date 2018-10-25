@@ -41,7 +41,7 @@ before_install:
   - ln -s `which true` /home/travis/bin/cpansign
   - eval $(curl https://travis-perl.github.io/init) --auto
 install:
-  - export AUTOMATED_TESTING=1 HARNESS_TIMER=1 AUTHOR_TESTING=0 RELEASE_TESTING=0
+  - export AUTOMATED_TESTING=1 HARNESS_TIMER=1 AUTHOR_TESTING=1 RELEASE_TESTING=1
   - cpan-install --deps       # installs prereqs, including recommends
   #- cpan-install JSON JSON::PP JSON::XS Mojo::JSON Test::LeakTrace Time::Piece
   - cpan-install --coverage   # installs converage prereqs, if enabled
