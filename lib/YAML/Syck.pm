@@ -8,10 +8,12 @@ use vars qw(
   $Headless $SortKeys $SingleQuote
   $ImplicitBinary $ImplicitTyping $ImplicitUnicode
   $UseCode $LoadCode $DumpCode
+  $UseBoolean $LoadBoolean $DumpBoolean
   $DeparseObject $LoadBlessed
 );
 use 5.006;
 use Exporter;
+use JSON::PP ();
 
 BEGIN {
     $VERSION   = '1.31';
@@ -21,6 +23,14 @@ BEGIN {
 
     $SortKeys    = 1;
     $LoadBlessed = 1;
+
+    *true    = \$JSON::PP::true;
+    *true    = \&JSON::PP::true;
+    *false   = \$JSON::PP::false;
+    *false   = \&JSON::PP::false;
+    *is_bool = \&JSON::PP::is_bool;
+
+    *YAML::Syck::Boolean:: = *JSON::PP::Boolean::;
 
     local $@;
     eval {
@@ -239,6 +249,16 @@ your own file in order to assure it's UTF8 encoded:
 Defaults to false.  For Perl 5.8.0 or later, setting this to a true value will
 make C<Dump> generate Base64-encoded C<!!binary> data for all non-Unicode
 scalars containing high-bit bytes.
+
+=head2 $YAML::Syck::UseBoolean / $YAML::Syck::LoadBoolean / $YAML::Syck::DumpBoolean
+
+These flags control whether or not to treat booleans as YAML::Syck::Boolean
+(YAML::Syck::true and YAML::Syck::false) rather than numeric 1 and empty
+string ''. In order to load booleans you also need to set
+C<$YAML::Syck::ImplicitTyping>.
+
+Setting C<$YAML::Syck::UseBoolean> to a true value is equivalent to setting
+both C<$YAML::Syck::LoadBoolean> and C<$YAML::Syck::DumpBoolean> to true.
 
 =head2 $YAML::Syck::UseCode / $YAML::Syck::LoadCode / $YAML::Syck::DumpCode
 

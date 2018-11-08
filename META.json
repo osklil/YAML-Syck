@@ -32,7 +32,8 @@
       },
       "runtime" : {
          "requires" : {
-            "perl" : "5.006"
+            "perl" : "5.006",
+            "JSON::PP" : "0"
          }
       }
    },

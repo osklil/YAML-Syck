@@ -19,6 +19,7 @@ no_index:
     - inc
 requires:
   perl: '5.006'
+  JSON::PP: '0'
 resources:
   bugtracker: https://github.com/toddr/YAML-Syck/issues
   homepage: http://github.com/toddr/YAML-Syck

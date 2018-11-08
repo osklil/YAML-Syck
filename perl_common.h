@@ -38,6 +38,7 @@ struct emitter_xtra {
     } out;
     char* tag;
     char dump_code;
+    char dump_boolean;
     bool implicit_binary;
     int ioerror;
 };
@@ -47,6 +48,7 @@ struct parser_xtra {
     bool implicit_unicode;
     bool load_code;
     bool load_blessed;
+    bool load_boolean;
     HV *bad_anchors;
 };
 

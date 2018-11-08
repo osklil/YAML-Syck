@@ -67,6 +67,13 @@ static enum scalar_style yaml_quote_style = scalar_none;
 #  define PERL_SYCK_INDENT_LEVEL 2
 #endif
 
+static HV *bool_stash;
+static SV *bool_true, *bool_false;
+#define TRUE_LITERAL "true"
+#define TRUE_LITERAL_LENGTH 4
+#define FALSE_LITERAL "false"
+#define FALSE_LITERAL_LENGTH 5
+
 #define TRACK_OBJECT(sv) (av_push(((struct parser_xtra *)p->bonus)->objects, sv))
 #define USE_OBJECT(sv) (SvREFCNT_inc(sv))
 
@@ -156,11 +163,12 @@ yaml_syck_parser_handler
     HV *map;
     long i;
     char *id = n->type_id;
-#ifndef YAML_IS_JSON
     struct parser_xtra *bonus = (struct parser_xtra *)p->bonus;
+#ifndef YAML_IS_JSON
     bool load_code = bonus->load_code;
     bool load_blessed = bonus->load_blessed;
 #endif
+    bool load_boolean = bonus->load_boolean;
 
     while (id && (*id == '!')) { id++; }
 
@@ -178,9 +186,9 @@ yaml_syck_parser_handler
             } else if (strEQ( id, "null" )) {
                 sv = newSV(0);
             } else if (strEQ( id, "bool#yes" )) {
-                sv = newSVsv(&PL_sv_yes);
+                sv = load_boolean ? bool_true : newSVsv(&PL_sv_yes);
             } else if (strEQ( id, "bool#no" )) {
-                sv = newSVsv(&PL_sv_no);
+                sv = load_boolean ? bool_false : newSVsv(&PL_sv_no);
             } else if (strEQ( id, "default" )) {
                 sv = newSVpvn(n->data.str->ptr, n->data.str->len);
                 CHECK_UTF8;
@@ -732,6 +740,8 @@ static SV * LoadYAML (char *s) {
     SV *implicit_unicode = GvSV(gv_fetchpv(form("%s::ImplicitUnicode", PACKAGE_NAME), TRUE, SVt_PV));
     SV *singlequote      = GvSV(gv_fetchpv(form("%s::SingleQuote", PACKAGE_NAME), TRUE, SVt_PV));
     SV *load_blessed     = GvSV(gv_fetchpv(form("%s::LoadBlessed", PACKAGE_NAME), TRUE, SVt_PV));
+    SV *use_boolean      = GvSV(gv_fetchpv(form("%s::UseBoolean", PACKAGE_NAME), TRUE, SVt_PV));
+    SV *load_boolean     = GvSV(gv_fetchpv(form("%s::LoadBoolean", PACKAGE_NAME), TRUE, SVt_PV));
     json_quote_char      = (SvTRUE(singlequote) ? '\'' : '"' );
 
     ENTER; SAVETMPS;
@@ -760,7 +770,17 @@ static SV * LoadYAML (char *s) {
     bonus.implicit_unicode = SvTRUE(implicit_unicode);
     bonus.load_code        = SvTRUE(use_code) || SvTRUE(load_code);
     bonus.load_blessed     = SvTRUE(load_blessed);
+    bonus.load_boolean     = SvTRUE(use_boolean) || SvTRUE(load_boolean);
     parser->bonus          = &bonus;
+
+    if (bonus.load_boolean) {
+        bool_true            = get_sv("JSON::PP::true", 1);
+        bool_false           = get_sv("JSON::PP::false", 1);
+        SvREADONLY_on(bool_true);
+        SvREADONLY_on(SvRV(bool_true));
+        SvREADONLY_on(bool_false);
+        SvREADONLY_on(SvRV(bool_false));
+    }
 
 #ifndef YAML_IS_JSON
     bonus.bad_anchors = (HV*)sv_2mortal((SV*)newHV());
@@ -892,6 +912,7 @@ yaml_syck_emitter_handler
     char implicit_binary       = bonus->implicit_binary;
     char* ref                  = NULL;
 #endif
+    char dump_boolean          = bonus->dump_boolean;
 
 #define OBJECT_TAG     "tag:!perl:"
     
@@ -902,7 +923,7 @@ yaml_syck_emitter_handler
 #ifndef YAML_IS_JSON
 
     /* Handle blessing into the right class */
-    if (sv_isobject(sv)) {
+    if (sv_isobject(sv) && (!dump_boolean || SvSTASH(sv) != bool_stash)) {
         ref = savepv(sv_reftype(SvRV(sv), TRUE));
         *tag = '\0';
         strcat(tag, OBJECT_TAG);
@@ -965,7 +986,13 @@ yaml_syck_emitter_handler
     }
 #endif
 
-    if (SvROK(sv)) {
+    if (dump_boolean && SvSTASH(sv) == bool_stash) {
+        if (SvIV(sv))
+            syck_emit_scalar(e, "str", scalar_plain, 0, 0, 0, TRUE_LITERAL, TRUE_LITERAL_LENGTH);
+        else
+            syck_emit_scalar(e, "str", scalar_plain, 0, 0, 0, FALSE_LITERAL, FALSE_LITERAL_LENGTH);
+    }
+    else if (SvROK(sv)) {
         /* emit a scalar ref */
 #ifdef YAML_IS_JSON
         PERL_SYCK_EMITTER_HANDLER(e, (st_data_t)SvRV(sv));
@@ -1253,6 +1280,8 @@ DumpYAMLImpl
     SV *use_code         = GvSV(gv_fetchpv(form("%s::UseCode", PACKAGE_NAME), TRUE, SVt_PV));
     SV *dump_code        = GvSV(gv_fetchpv(form("%s::DumpCode", PACKAGE_NAME), TRUE, SVt_PV));
     SV *sortkeys         = GvSV(gv_fetchpv(form("%s::SortKeys", PACKAGE_NAME), TRUE, SVt_PV));
+    SV *use_boolean      = GvSV(gv_fetchpv(form("%s::UseBoolean", PACKAGE_NAME), TRUE, SVt_PV));
+    SV *dump_boolean     = GvSV(gv_fetchpv(form("%s::DumpBoolean", PACKAGE_NAME), TRUE, SVt_PV));
 #ifdef YAML_IS_JSON
     SV *singlequote      = GvSV(gv_fetchpv(form("%s::SingleQuote", PACKAGE_NAME), TRUE, SVt_PV));
     SV *max_depth        = GvSV(gv_fetchpv(form("%s::MaxDepth", PACKAGE_NAME), TRUE, SVt_PV));
@@ -1287,8 +1316,12 @@ DumpYAMLImpl
     New(801, bonus->tag, 512, char);
     *(bonus->tag) = '\0';
     bonus->dump_code = SvTRUE(use_code) || SvTRUE(dump_code);
+    bonus->dump_boolean = SvTRUE(use_boolean) || SvTRUE(dump_boolean);
     bonus->implicit_binary = SvTRUE(implicit_binary);
     emitter->bonus = bonus;
+
+    if (bonus->dump_boolean)
+        bool_stash = gv_stashpv("JSON::PP::Boolean", 1);
 
     syck_emitter_handler( emitter, PERL_SYCK_EMITTER_HANDLER );
     syck_output_handler( emitter, output_handler );
