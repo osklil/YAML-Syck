@@ -185,10 +185,15 @@ yaml_syck_parser_handler
                 }
             } else if (strEQ( id, "null" )) {
                 sv = newSV(0);
+            } else if (strEQ( id, "bool" )) {
+                if (strnEQ( n->data.str->ptr, TRUE_LITERAL, 1+TRUE_LITERAL_LENGTH))
+                    sv = newSVsv(load_boolean ? bool_true : &PL_sv_yes);
+                else /*if (strnEQ( n->data.str->ptr, FALSE_LITERAL, 1+FALSE_LITERAL_LENGTH))*/
+                    sv = newSVsv(load_boolean ? bool_false : &PL_sv_no);
             } else if (strEQ( id, "bool#yes" )) {
-                sv = load_boolean ? bool_true : newSVsv(&PL_sv_yes);
+                sv = newSVsv(load_boolean ? bool_true : &PL_sv_yes);
             } else if (strEQ( id, "bool#no" )) {
-                sv = load_boolean ? bool_false : newSVsv(&PL_sv_no);
+                sv = newSVsv(load_boolean ? bool_false : &PL_sv_no);
             } else if (strEQ( id, "default" )) {
                 sv = newSVpvn(n->data.str->ptr, n->data.str->len);
                 CHECK_UTF8;
